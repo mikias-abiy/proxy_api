@@ -38,7 +38,6 @@ class UserManager:
             user_id (int): The telegram id of the user.
             proxy_locations (str): The proxy locations the user choose.
         """
-        print(self.__users)
         self.__users[user_id].ongoing_order = {}
         self.__users[user_id].ongoing_order['proxy_locations'] = proxy_locations
         self.__users[user_id].save()
@@ -130,5 +129,4 @@ class UserManager:
         users = storage.get('User')
 
         for user in users:
-            print(type(user))
             self.__users[user.user_id] = user

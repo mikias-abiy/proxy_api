@@ -7,7 +7,7 @@ import json
 import telebot
 from telebot import types
 from telebot.util import quick_markup
-from inline_pagination import Keyboard
+from models.inline_pagination import Keyboard
 
 # Local modules imports
 from api.bot import bot
@@ -93,8 +93,6 @@ def cmd_order_calc(message):
             order_info['country_id'], order_info['period_id'],
             order_info['quantity'], None, None, f"{user_info.first_name}"
         )
-    
-    print(json.dumps(response, indent=4))
 
     ready =  True if user_info.balance >= int(response['total']) else False
     msg = f"""
@@ -311,10 +309,9 @@ def callback_choose_proxy_location(call):
     buttons = {}
     
     all_countries = storage.get('Country')
-    print(all_countries.is_empty())
     countries = []
+
     for country in all_countries:
-        print(country)
         if country.type == proxy_locations:
                 countries.append(country)
 

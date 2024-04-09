@@ -14,8 +14,6 @@ country_mix = ps_api.referenceList('mix')['items']['country']
 periods = ps_api.referenceList('mix')['items']['period']
 
 
-print(len(country_ipv4) + len(country_mix) + len(periods))
-
 for country in country_ipv4:
     name = country['name']
     country_id = country['id']
@@ -39,7 +37,3 @@ for period in periods:
     price = response['price']
     prd = Period(period_id=period_id, name=name, price=price)
     prd.save()
-
-all = storage.get('Country')
-
-print(all.is_empty())
