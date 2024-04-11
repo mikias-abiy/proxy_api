@@ -37,6 +37,10 @@ class DBStorage:
 
         database = create_database(db_url)
         self.__store = Store(database=database)
+    
+    @property
+    def store(self):
+        return self.__store
 
     def new(self, obj):
         """

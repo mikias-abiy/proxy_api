@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
-  `user_id` INT PRIMARY KEY,
+  `user_id` BIGINT PRIMARY KEY,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
   `username` VARCHAR(255),
@@ -54,9 +54,9 @@ CREATE TABLE `proxy_configs` (
     `proxy_config_id` VARCHAR(40) PRIMARY KEY,
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NOT NULL,
-    `provider` VARCHAR(255),
     `country_id` INT,
     `country` VARCHAR(255),
+    `provider` VARCHAR(255),
     `provider_id` INT,
     `period` VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -79,15 +79,15 @@ DROP TABLE IF EXISTS `orders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orders` (
-  `order_id` VARCHAR(40) PRIMARY KEY,
+  `order_id` BIGINT PRIMARY KEY,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
-  `user_id` INT,
+  `user_id` BIGINT NOT NULL,
   `provider` VARCHAR(255),
-  `provider_id` INT,
-  `amount_paid` INT,
   `rental_period` VARCHAR(255),
-  `item_delivered` VARCHAR(255)
+  `item_delivered` VARCHAR(255),
+  `provider_id` INT,
+  `amount_paid` INT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -111,7 +111,7 @@ CREATE TABLE `deposits` (
   `tx_id` VARCHAR(40) PRIMARY KEY,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `address` VARCHAR(255) NOT NULL,
   `crypto` VARCHAR(255) NOT NULL,
   `amount` INT NOT NULL

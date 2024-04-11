@@ -41,7 +41,7 @@ CREATE TABLE `periods` (
 );
 
 CREATE TABLE `orders` (
-    `order_id` TEXT PRIMARY KEY,
+    `order_id` INT PRIMARY KEY,
     `created_at` DATETIME NOT NULL,
     `updated_at` DATETIME NOT NULL,
     `user_id` INTEGER,
