@@ -5,6 +5,7 @@ user_manager.py:
     This module contains the defination of the UserInfoManger class.
 """
 
+
 class UserManager:
     """
     UserManager: A model for object that manages / maps user to their
@@ -79,6 +80,19 @@ class UserManager:
         self.__users[user_id].ongoing_order['quantity'] = quantity
         self.__users[user_id].save()
     
+    def set_ongoing_order_price(self, user_id, price, currency):
+        """
+        set_ongoing_order_price: sets the price of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            price (int): The price of the proxy the user set.
+            currency (str): The currecy the price is specified in.
+        """
+        self.__users[user_id].ongoing_order['price'] = price
+        self.__users[user_id].ongoing_order['currency'] = currency
+        self.__users[user_id].save()
+
     def ongoing_order_done(self, user_id):
         """
         ongoing_order_done: deletes the ongoing order prop from the UserInfo obj.
