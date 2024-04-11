@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
 # Standard module imports
-import json
+import asyncio
+import time
 
 # Telegram telebot API module imports
 import telebot
@@ -14,12 +15,11 @@ from api.bot import bot
 from api.ps_api import ps_api
 from models import user_manager as uim
 from models import storage
+from models.db_models.order import Order
 
 
 keyboards = []
 
-
-# Message handlers.
 
 @bot.message_handler(commands=['start'])
 def cmd_start(message):
@@ -27,7 +27,7 @@ def cmd_start(message):
     """
 
     user_id = message.from_user.id
-    
+
     if uim.get(user_id) is None:
         uim.create_user(user_id)
 
@@ -55,7 +55,9 @@ def cmd_start(message):
         types.InlineKeyboardButton("Chat", url='https://www.google.com/')
     )
 
-    bot.send_message(message.chat.id, "Welcome to the bot!", reply_markup=markup)
+    bot.send_message(
+        message.chat.id, "Welcome to the bot!", reply_markup=markup
+    )
 
 
 @bot.message_handler(func=lambda message:
@@ -63,6 +65,7 @@ def cmd_start(message):
 def cmd_order_calc(message):
     """
     """
+
     user_id = message.from_user.id
     quantity = int(message.text)
 
@@ -71,7 +74,10 @@ def cmd_order_calc(message):
     user_info = uim.get(user_id)
     order_info = user_info.ongoing_order
 
-    if order_info['proxy_locations'] == 'mix' and quantity not in [20, 50, 100, 200, 500, 1000, 2000]:
+    if (
+        order_info['proxy_locations'] == 'mix' and
+        quantity not in [20, 50, 100, 200, 500, 1000, 2000]
+    ):
         bot.send_message(
             message.chat.id,
             "Accepted quantities for Mix Country type are the following\n" +
@@ -80,8 +86,6 @@ def cmd_order_calc(message):
         return
 
     bot.clear_reply_handlers(message)
-    
-    
 
     if order_info['proxy_locations'] == 'ipv4':
         response = ps_api.orderCalcIpv4(
@@ -94,7 +98,11 @@ def cmd_order_calc(message):
             order_info['quantity'], None, None, f"{user_info.first_name}"
         )
 
-    ready =  True if user_info.balance >= int(response['total']) else False
+    uim.set_ongoing_order_price(
+        user_id, response['total'], response['currency']
+    )
+
+    ready = True if user_info.balance >= int(order_info['price']) else False
     msg = f"""
 Order Informatoin:
 
@@ -102,12 +110,12 @@ Country: {order_info['country']}
 Period: {order_info['period']}
 Quantity: {order_info['quantity']}
 
-Total Price: {response['total']} {response['currency']}
+Total Price: {order_info['price']} {order_info['currency']}
 Your Balance: {user_info.balance}
 
 {
 "Press the key below to checkout your order."
- if ready else 
+ if ready else
 "Sorry your balance is Insufficient topup and try again."
 }
 """
@@ -116,28 +124,216 @@ Your Balance: {user_info.balance}
     if ready:
         markup = types.InlineKeyboardMarkup()
         markup.row(
-            types.InlineKeyboardButton("Checkout Order", callback_data=f"{user_id}_order_make")
+            types.InlineKeyboardButton(
+                "Checkout Order", callback_data=f"{user_id}_order_make"
+            )
         )
 
     bot.send_message(message.chat.id, msg, reply_markup=markup)
 
 
-# Callback Query Handlers.
+@bot.callback_query_handler(func=lambda call:
+                            call.data.endswith('_orders'))
+def callback_orders(call):
+    """
+    """
+
+    user_id = int(call.data.split("_")[0])
+
+    orders = storage.store.find(Order, Order.user_id == user_id)
+    response_orders_ipv4 = []
+    response_orders_mix = []
+
+    proxy_list_ipv4 = ps_api.proxyList("ipv4")['items']
+    proxy_list_mix = ps_api.proxyList("mix")['items']
+
+    for order in orders:
+        for proxy in proxy_list_ipv4:
+            if int(proxy['order_id']) == order.order_id:
+                response_orders_ipv4.append(proxy)
+
+    for order in orders:
+        for proxy in proxy_list_mix:
+            if int(proxy['order_id']) == order.order_id:
+                response_orders_ipv4.append(proxy)
+
+    if len(response_orders_ipv4):
+        msg_ipv4 = "Country Proxy List\n"
+
+        for order in response_orders_ipv4:
+            msg_ipv4 += f"""
+IP: {order['ip']}
+Port HTTP: {order['port_http']}
+Port Socks: {order['port_socks']}
+Country: {order['country']}
+
+Credentials
+Login: {order['login']}
+Password: {order['password']}
+
+"""
+        bot.send_message(call.message.chat.id, msg_ipv4)
+
+    if len(response_orders_mix):
+        msg_mix = "Mix Country Proxy List"
+        for order in response_orders_ipv4:
+            msg_mix += f"""
+IP: {order['ip']}
+Port HTTP: {order['port_http']}
+Port Socks: {order['port_socks']}
+Country: {order['country']}
+
+Credentials
+Login: {order['login']}
+Password: {order['password']}
+
+"""
+        bot.send_message(call.message.chat.id, msg_mix)
+
+    if len(response_orders_ipv4) and len(response_orders_mix):
+        bot.send_message(call.message.chat.id, "You have No orders")
+
+
+@bot.callback_query_handler(func=lambda call:
+                            call.data.endswith('_order_make'))
+def callback_order_make(call):
+    """
+    """
+
+    user_id = int(call.data.split("_")[0])
+    user_info = uim.get(user_id)
+
+    order_info = user_info.ongoing_order
+
+    if order_info['proxy_locations'] == 'ipv4':
+        response = ps_api.orderMakeIpv4(
+            order_info['country_id'], order_info['period_id'],
+            order_info['quantity'], None, None,
+            f"{user_info.first_name}_{order_info['country_id']}_{order_info['period_id']}"
+        )
+    elif order_info['proxy_locations'] == 'mix':
+        response = ps_api.orderCalcMix(
+            order_info['country_id'], order_info['period_id'],
+            order_info['quantity'], None, None,
+            f"{user_info.first_name}_{order_info['country_id']}_{order_info['period_id']}"
+        )
+
+    markup = types.InlineKeyboardMarkup()
+    markup.row(
+        types.InlineKeyboardButton(
+            'Check',
+            callback_data=f"{user_id}_{response['orderId']}_order_status"
+        )
+    )
+
+    msg = """
+You will be notified once your order is registered.
+If you do not get a confirmation message in the next 5
+minutes use this button to check manually.
+"""
+
+    bot.edit_message_text(
+        msg, call.message.chat.id, call.message.id, reply_markup=markup
+    )
+    asyncio.create_task(
+        callback_order_status(call, order_id=response['orderId'])
+    )
+
+
+@bot.callback_query_handler(func=lambda call:
+                            call.data.endswith('_order_status'))
+def callback_order_status(call, order_id=None):
+    """
+    """
+
+    auto = False
+
+    if order_id is None:
+        order_id = int(call.data.split("_")[1])
+    else:
+        auto = True
+        time.sleep(60 * 5)
+
+    if not storage.store.find(Order, Order.order_id == order_id).is_empty():
+        return
+
+    user_id = int(call.data.split("_")[0])
+    order_info = uim.get(user_id).ongoing_order
+
+    proxy_list = ps_api.proxyList(order_info['proxy_locations'])['items']
+
+    for proxy in proxy_list:
+        if int(proxy['order_id']) == order_id:
+            Order(
+                int(proxy['order_id']), user_id,
+                order_info['price'], order_info['period']
+            )
+
+    if int(proxy['order_id']) != order_id and not auto:
+        markup = types.InlineKeyboardMarkup()
+        markup.row(
+            types.InlineKeyboardButton(
+                'Check',
+                callback_data=f"{user_id}_{order_id}_order_status"
+            )
+        )
+        msg = """\
+Sorry still processing try again after another 5 minutes.
+Sorry for the delay
+"""
+        bot.edit_message_text(msg, call.message.chat.id, call.message.id)
+        return
+
+    elif int(proxy['order_id']) != order_id and auto:
+        callback_order_status(call, order_id)
+        return
+
+    msg = f"""
+IP: {proxy['ip']}
+Port HTTP: {proxy['port_http']}
+Port Socks: {proxy['port_socks']}
+Country: {proxy['country']}
+
+Credentials
+Login: {proxy['login']}
+Password: {proxy['password']}
+
+Thank You for using our service.
+"""
+
+    bot.edit_message_text(
+        msg, call.message.chat.id, call.message.id, reply_markup=None
+    )
+
+
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith("_dashboard"))
-def callback_handler(call):
+def callback_dashboard(call):
+    """
+    """
+
     user_id = int(call.data.split("_")[0])
 
     markup = types.InlineKeyboardMarkup(row_width=1)
 
     markup.row(
-        types.InlineKeyboardButton("Topup", callback_data=f'{user_id}_topup'),
-        types.InlineKeyboardButton("Orders", callback_data=f'{user_id}_orders')    
+        types.InlineKeyboardButton(
+            "Topup", callback_data=f'{user_id}_topup'
+        ),
+        types.InlineKeyboardButton(
+            "Orders", callback_data=f'{user_id}_orders'
+        )
     )
     markup.row(
-        types.InlineKeyboardButton("Balance", callback_data=f'{user_id}_balance'),
+        types.InlineKeyboardButton(
+            "Balance", callback_data=f'{user_id}_balance'
+        ),
     )
-    bot.edit_message_text("Dashboard options:", call.message.chat.id, call.message.id, reply_markup=markup)
+
+    bot.edit_message_text(
+        "Dashboard options:", call.message.chat.id,
+        call.message.id, reply_markup=markup
+    )
 
 
 @bot.callback_query_handler(func=lambda call:
@@ -145,6 +341,7 @@ def callback_handler(call):
 def callback_balance(call):
     """
     """
+
     user_info = uim.get(int(call.data.split("_")[0]))
 
     msg = f"Balance: {user_info.balance} USD"
@@ -152,27 +349,36 @@ def callback_balance(call):
     bot.edit_message_text(msg, call.message.chat.id, call.message.id)
 
 
-
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith("_topup"))
 def callback_topup(call):
     """
     """
+
     user_id = int(call.data.split("_")[0])
 
     markup = types.InlineKeyboardMarkup()
     for i in range(5, 101, 20):
         markup.row(
-            types.InlineKeyboardButton(f'{i}$', callback_data=f'{user_id}_{i}_topup_amount'),
-            types.InlineKeyboardButton(f'{i + 5}$', callback_data=f'{user_id}_{i + 5}_topup_amount'),
-            types.InlineKeyboardButton(f'{i + 10}$', callback_data=f'{user_id}_{i + 10}_topup_amount'),
-            types.InlineKeyboardButton(f'{i + 15}$', callback_data=f'{user_id}_{i + 15}_topup_amount')
+            types.InlineKeyboardButton(
+                f'{i}$', callback_data=f'{user_id}_{i}_topup_amount'
+            ),
+            types.InlineKeyboardButton(
+                f'{i + 5}$', callback_data=f'{user_id}_{i + 5}_topup_amount'
+            ),
+            types.InlineKeyboardButton(
+                f'{i + 10}$', callback_data=f'{user_id}_{i + 10}_topup_amount'
+            ),
+            types.InlineKeyboardButton(
+                f'{i + 15}$', callback_data=f'{user_id}_{i + 15}_topup_amount'
+            )
         )
 
     msg = "Choose the amount you want to topup with."
 
-    bot.edit_message_text(msg, call.message.chat.id, call.message.id, reply_markup=markup)
-    bot.edit_message_reply_markup(call.message.chat.id, call.message.id, reply_markup=markup)
+    bot.edit_message_text(
+        msg, call.message.chat.id, call.message.id, reply_markup=markup
+    )
 
 
 @bot.callback_query_handler(func=lambda call:
@@ -180,19 +386,20 @@ def callback_topup(call):
 def callback_topup_amount(call):
     """
     """
+
     data = call.data.split("_")
     user_id = int(data[0])
     user_info = uim.get(user_id)
     amount = data[1]
 
     methods = ps_api.balancePaymentsList()
-    
+
     markup = types.InlineKeyboardMarkup()
-    
+
     for i in range(0, len(methods), 2):
         markup.row(
             types.InlineKeyboardButton(
-                f"{methods[i]['name']}", 
+                f"{methods[i]['name']}",
                 callback_data=f"{user_id}_{methods[-1]['id']}_{amount}_topup_method"
             ),
             types.InlineKeyboardButton(
@@ -219,6 +426,7 @@ def callback_topup_amount(call):
 def callback_topup_method(call):
     """
     """
+
     data = call.data.split("_")
     user_id = int(data[0])
     user_info = uim.get(user_id)
@@ -255,6 +463,7 @@ def callback_topup_method(call):
 def callback_proxy(call):
     """
     """
+
     user_id = int(call.data.split('_')[0])
 
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -264,13 +473,14 @@ def callback_proxy(call):
     
     markup.add(datacenter_button, residential_button)
 
-
     bot.edit_message_text("Proxy options:", call.message.chat.id, call.message.id, reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith("_proxy"))
 def callback_proxytype(call):
+    """
+    """
 
     user_id = int(call.data.split('_')[0])
     proxytype = call.data.split("_")[1]
@@ -295,19 +505,26 @@ def callback_proxytype(call):
         markup.add(by_country_button, by_type_button)
     
     
-    bot.edit_message_text(f"{proxytype.capitalize()} options:", call.message.chat.id, call.message.id, reply_markup=markup)
+    bot.edit_message_text(
+        f"{proxytype.capitalize()} options:",
+        call.message.chat.id, call.message.id,
+        reply_markup=markup
+    )
 
 
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith("_proxy_locations"))
 def callback_choose_proxy_location(call):
+    """
+    """
+    
     user_id = int(call.data.split('_')[0])
     proxy_locations = call.data.split("_")[1]
 
     uim.create_ongoing_order(user_id, proxy_locations)
 
     buttons = {}
-    
+
     all_countries = storage.get('Country')
     countries = []
 
@@ -319,9 +536,12 @@ def callback_choose_proxy_location(call):
         for i, j in enumerate(keyboards):
             if j["id"] == call.message.chat.id:
                 del keyboards[i]
+    
         data = []
+    
         for country in countries:
             data.append((f"{country.name.split(' ')[-1]}", f"{user_id}_{country.name.split(' ')[-1]}_{country.country_id}_location"))
+
         json_dict  = {
             'id': call.message.chat.id,
             'object': Keyboard(
@@ -330,7 +550,9 @@ def callback_choose_proxy_location(call):
                 next_page="➡️", previous_page="⬅️" 
             )
         }
+
         keyboards.append(json_dict)
+
     elif proxy_locations == "mix":
         for country in countries:
             buttons[f"{country.name}"] = {'callback_data': f"{user_id}_{country.name}_{country.country_id}_location"}
@@ -350,6 +572,9 @@ def callback_choose_proxy_location(call):
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith('_location'))
 def callback_choose_period(call):
+    """
+    """
+
     user_id = int(call.data.split('_')[0])
     country = call.data.split("_")[1]
     country_id = int(call.data.split("_")[2])
@@ -371,10 +596,13 @@ def callback_choose_period(call):
 @bot.callback_query_handler(func=lambda call:
                             call.data.endswith('_period'))
 def callback_set_quantity(call):
+    """
+    """
+
     user_id = int(call.data.split('_')[0])
     period = call.data.split("_")[1]
     period_id = call.data.split("_")[2]
-    proxy_locations = user_info = uim.get(user_id).ongoing_order['proxy_locations']
+    proxy_locations = uim.get(user_id).ongoing_order['proxy_locations']
 
     uim.set_ongoing_order_period(user_id, period, period_id)
 
@@ -389,12 +617,15 @@ if proxy_locations == 'mix' else
 }
 """
 
-    bot.edit_message_text(f"Amount of proxy:", call.message.chat.id, call.message.id, reply_markup=None)
+    bot.edit_message_text(msg, call.message.chat.id, call.message.id, reply_markup=None)
 
 
 @bot.callback_query_handler(func=lambda call:
                             call.data in ('previous_page', 'next_page'))
 def callback_pagination_handler(call):
+    """
+    """
+
     for keyboard in keyboards:
         if keyboard["id"] == call.message.chat.id:
             bot.edit_message_reply_markup(
