@@ -11,4 +11,4 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 if __name__ == '__main__':
-    bot.polling()
+    bot.infinity_polling()
