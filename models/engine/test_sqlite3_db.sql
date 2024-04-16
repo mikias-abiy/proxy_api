@@ -2,14 +2,6 @@ PRAGMA foreign_keys=OFF;
 
 BEGIN TRANSACTION;
 
-CREATE TABLE `countries` (
-    `country_id` INTEGER PRIMARY KEY,
-    `created_at` DATETIME NOT NULL,
-    `updated_at` DATETIME NOT NULL,
-    `name` TEXT NOT NULL,
-    `type` TEXT NOT NULL
-);
-
 CREATE TABLE `users` (
     `user_id` INTEGER PRIMARY KEY,
     `created_at` DATETIME NOT NULL,
@@ -31,13 +23,6 @@ CREATE TABLE `proxy_configs` (
     `country` TEXT,
     `provider_id` INTEGER,
     `period` TEXT
-);
-CREATE TABLE `periods` (
-    `period_id` TEXT PRIMARY KEY,
-    `created_at` DATETIME NOT NULL,
-    `updated_at` DATETIME NOT NULL,
-    `name` TEXT,
-    `price` INTEGER
 );
 
 CREATE TABLE `orders` (
@@ -61,5 +46,14 @@ CREATE TABLE `deposits` (
     `crypto` TEXT NOT NULL,
     `amount` INTEGER NOT NULL
 );
+
+CREATE TABLE `proxy_types` (
+  `type` VARCHAR(255) PRIMARY KEY,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME NOT NULL,
+  `countries` TEXT,
+  `plans` TEXT,
+  `periods` TEXT
+)
 
 COMMIT;

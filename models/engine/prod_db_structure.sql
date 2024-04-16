@@ -128,53 +128,29 @@ LOCK TABLES `deposits` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `countries`
+-- Table structure for table `proxy_types`
 --
 
-DROP TABLE IF EXISTS `countries`;
+DROP TABLE IF EXISTS `proxy_types`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `countries` (
-  `country_id` INT PRIMARY KEY,
+CREATE TABLE `proxy_types` (
+  `type` VARCHAR(255) PRIMARY KEY,
   `created_at` DATETIME NOT NULL,
   `updated_at` DATETIME NOT NULL,
-  `name` VARCHAR(255),
-  `type` VARCHAR(255)
+  `countries` JSON,
+  `plans` JSON,
+  `periods` JSON
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `countries`
+-- Dumping data for table `proxy_types`
 --
 
-LOCK TABLES `countries` WRITE;
-/*!40000 ALTER TABLE `countries` DISABLE KEYS */;
-/*!40000 ALTER TABLE `countries` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `periods`
---
-
-DROP TABLE IF EXISTS `periods`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `periods` (
-  `period_id` VARCHAR(40) PRIMARY KEY,
-  `created_at` DATETIME NOT NULL,
-  `updated_at` DATETIME NOT NULL,
-  `name` VARCHAR(255),
-  `price` INT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `periods`
---
-
-LOCK TABLES `periods` WRITE;
-/*!40000 ALTER TABLE `periods` DISABLE KEYS */;
-/*!40000 ALTER TABLE `periods` ENABLE KEYS */;
+LOCK TABLES `proxy_types` WRITE;
+/*!40000 ALTER TABLE `proxy_types` DISABLE KEYS */;
+/*!40000 ALTER TABLE `proxy_types` ENABLE KEYS */;
 UNLOCK TABLES;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
