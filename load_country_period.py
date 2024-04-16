@@ -28,6 +28,8 @@ response = ps_api.referenceList('resident')['items']
 
 plans = response['tarifs']
 
+b = ps_api.residentGeo()
+
 with open('geo.zip', 'wb') as f:
     f.write(b)
 os.system('unzip geo.zip')
@@ -35,18 +37,3 @@ with open('geo.json', 'r') as f:
     countries = f.read()
 
 ProxyType('resident', countries=countries, plans=plans, periods=None)
-
-# r_type = storage.store.get(ProxyType, 'resident')
-
-# # b = ps_api.residentGeo()
-
-# # 
-# # 
-# # 
-# # 
-# # 
-
-# print(json.dumps(r_type.countries, indent=2))
-
-m_type = storage.store.get(ProxyType, 'mobile')
-print(json.dumps(m_type.countries, indent=2))
