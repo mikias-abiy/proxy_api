@@ -2,7 +2,7 @@ import requests
 import json
 
 
-class ProxySelleAPI:
+class ProxySellerAPI:
     URL = 'https://proxy-seller.com/personal/api/v1/'
     paymentId = 1
     generateAuth = 'N'
@@ -291,7 +291,7 @@ class ProxySelleAPI:
                          periodId=periodId, quantity=quantity, authorization=authorization, coupon=coupon,
                          customTargetName=customTargetName, protocol=protocol))
 
-    def orderCalcMobile(self, countryId, periodId, quantity, authorization, coupon, operatorId, rotationId):
+    def orderCalcMobile(self, countryId, periodId, quantity, mobileServiceType, operatorId, rotationId, authorization, coupon):
         """
         Calculate the preliminary order for Mobile.
         Preliminary order calculation.
@@ -301,10 +301,11 @@ class ProxySelleAPI:
             country_id (int): The identifier for the country.
             period_id (int): The identifier for the period.
             quantity (int): The quantity of items.
-            authorization (str): IP address.
-            coupon (str): The coupon code.
+            mobileServiceType (str): The type of mobile operator service 'dedicated' or 'shared'
             operatorId (int): The identifier for the operator.
             rotationId (int): The identifier for the rotation.
+            authorization (str): IP address.
+            coupon (str): The coupon code.
 
         Returns:
             dict: An example of the returned value is shown below.
@@ -320,8 +321,9 @@ class ProxySelleAPI:
         """
         return self.orderCalc(
             self.prepare(paymentId=self.paymentId, generateAuth=self.generateAuth, countryId=countryId,
-                         periodId=periodId, quantity=quantity, authorization=authorization, coupon=coupon,
-                         operatorId=operatorId, rotationId=rotationId))
+                         periodId=periodId, quantity=quantity, mobileServiceType=mobileServiceType,
+                         operatorId=operatorId, rotationId=rotationId, authorization=authorization,
+                         coupon=coupon))
 
     def orderCalcResident(self, tarifId, coupon):
         """
@@ -457,7 +459,7 @@ class ProxySelleAPI:
                          periodId=periodId, quantity=quantity, authorization=authorization, coupon=coupon,
                          customTargetName=customTargetName, protocol=protocol))
 
-    def orderMakeMobile(self, countryId, periodId, quantity, authorization, coupon, operatorId, rotationId):
+    def orderMakeMobile(self, countryId, periodId, quantity, mobileServiceType, operatorId, rotationId, authorization, coupon):
         """
         Create an order for Mobile.
 
@@ -468,10 +470,11 @@ class ProxySelleAPI:
             country_id (int): The identifier for the country.
             period_id (int): The identifier for the period.
             quantity (int): The quantity of items.
-            authorization (str): The authorization token.
-            coupon (str): The coupon code.
+            mobileServiceType (str): The type of mobile operator service 'dedicated' or 'shared'
             operatorId (int): The identifier for the operator.
             rotationId (int): The identifier for the rotation.
+            authorization (str): IP address.
+            coupon (str): The coupon code.
 
         Returns:
             dict: An example of the returned value is shown below.
@@ -483,8 +486,9 @@ class ProxySelleAPI:
         """
         return self.orderMake(
             self.prepare(paymentId=self.paymentId, generateAuth=self.generateAuth, countryId=countryId,
-                         periodId=periodId, quantity=quantity, authorization=authorization, coupon=coupon,
-                         operatorId=operatorId, rotationId=rotationId))
+                         periodId=periodId, quantity=quantity, mobileServiceType=mobileServiceType,
+                         operatorId=operatorId, rotationId=rotationId, authorization=authorization,
+                         coupon=coupon))
 
     def orderMakeResident(self, tarifId, coupon):
         """

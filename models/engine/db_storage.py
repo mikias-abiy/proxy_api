@@ -13,6 +13,7 @@ from dotenv import dotenv_values
 
 from storm.locals import Store, create_database
 
+from config import F_ENV
 
 class DBStorage:
     """
@@ -22,7 +23,7 @@ class DBStorage:
     __store = None
 
     def __init__(self):
-        env_vars = dotenv_values()
+        env_vars = dotenv_values(F_ENV)
 
         user = env_vars['BOT_MYSQL_USER']
         passwd = env_vars['BOT_MYSQL_PWD']
@@ -87,16 +88,14 @@ class DBStorage:
         from models.db_models.proxy_config import ProxyConfig
         from models.db_models.order import Order
         from models.db_models.deposit import Deposit
-        from models.db_models.country import Country
-        from models.db_models.period import Period
+        from models.db_models.proxy_type import ProxyType
 
         classes = {
             'User': User,
             'ProxyConfig': ProxyConfig,
             'Order': Order,
             'Deposit': Deposit,
-            'Country': Country,
-            'Period': Period 
+            'ProxyType': ProxyType
         }
 
         return(self.__store.find(classes[cls]))

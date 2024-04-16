@@ -30,30 +30,144 @@ class UserManager:
         self.__users[user_id] = User(user_id=user_id)
         self.__users[user_id].save()
     
-    def create_ongoing_order(self, user_id, proxy_locations):
+    def create_ongoing_order(self, user_id, proxytype):
         """
         create_ongoing_order: creats an ongoing_order dict that tracks the option
                               the user entered to order proxy.
 
         Args:
             user_id (int): The telegram id of the user.
-            proxy_locations (str): The proxy locations the user choose.
+            proxytype (str): The proxy type the user choose.
         """
         self.__users[user_id].ongoing_order = {}
-        self.__users[user_id].ongoing_order['proxy_locations'] = proxy_locations
+        self.__users[user_id].ongoing_order['proxytype'] = proxytype
+
         self.__users[user_id].save()
-        
+
+    def set_ongoing_order_temp(self, user_id, data):
+        """
+        set_ongoing_order_temp: sets the temporary information on the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            data (any): The data to append to the temporary list.
+        """
+        if self.__users[user_id].ongoing_order.get('temp', None) is None:
+            self.__users[user_id].ongoing_order['temp'] = []    
+        self.__users[user_id].ongoing_order['temp'].append(data)
+        self.__users[user_id].save()
+    
+    def get_ongoing_order_temp(self, user_id):
+        """
+        get_ongoing_order_temp: gets the temporary information on the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+        """
+        l = list(self.__users[user_id].ongoing_order['temp'])
+        self.__users[user_id].ongoing_order.pop('temp')
+        self.__users[user_id].save()
+        print("List: ", l)
+        return (l)
+
     def set_ongoing_order_country(self, user_id, country, country_id):
         """
         set_ongoing_order_country: sets the country information of the ongoing order.
 
         Args:
             user_id (int): The telegram id of the user.
-            countr (int): The name of the country.
+            country (str): The name of the country.
             country_id (int): The id of the country the user choose.
         """
         self.__users[user_id].ongoing_order['country'] = country
         self.__users[user_id].ongoing_order['country_id'] = country_id
+        self.__users[user_id].save()
+    
+    def set_ongoing_order_operator_type(self, user_id, operator_type):
+        """
+        set_ongoing_order_operator_type:
+            sets the operator type information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            operator_type (str): dynacmic or shared.
+        """
+        self.__users[user_id].ongoing_order['operator_type'] = operator_type
+        self.__users[user_id].save()
+
+
+    def set_ongoing_order_operator(self, user_id, operator, operator_id):
+        """
+        set_ongoing_order_operator:
+            sets the operator information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            operator (str): The name of the operator.
+            operator_id (int): The id of the operator the user choose.
+        """
+        self.__users[user_id].ongoing_order['operator'] = operator
+        self.__users[user_id].ongoing_order['operator_id'] = operator_id
+        self.__users[user_id].save()
+
+    def set_ongoing_order_rotation(self, user_id, rotation, rotation_id):
+        """
+        set_ongoing_order_rotation:
+            sets the rotation information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            rotation (str): The name of the rotation.
+            rotation_id (int): The id of the rotation the user choose.
+        """
+        self.__users[user_id].ongoing_order['rotation'] = rotation
+        self.__users[user_id].ongoing_order['rotation_id'] = rotation_id
+        self.__users[user_id].save()
+
+    def set_ongoing_order_region(self, user_id, region):
+        """
+        set_ongoing_order_region: sets the region information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            region (str): The name of the region.
+        """
+        self.__users[user_id].ongoing_order['region'] = region
+        self.__users[user_id].save()
+    
+    def set_ongoing_order_city(self, user_id, city):
+        """
+        set_ongoing_order_city: sets the city information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            city (str): The name of the city.
+        """
+        self.__users[user_id].ongoing_order['city'] = city
+        self.__users[user_id].save()
+
+    def set_ongoing_order_isp(self, user_id, isp):
+        """
+        set_ongoing_order_isp: sets the isp information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            isp (str): The name of the isp.
+        """
+        self.__users[user_id].ongoing_order['isp'] = isp
+        self.__users[user_id].save()
+    
+    def set_ongoing_order_plan(self, user_id, plan, plan_id):
+        """
+        set_ongoing_order_plan: sets the plan information of the ongoing order.
+
+        Args:
+            user_id (int): The telegram id of the user.
+            plan (str): The name of the plan.
+            plan_id (int): The id of the plan the user choose.
+        """
+        self.__users[user_id].ongoing_order['plan'] = plan
+        self.__users[user_id].ongoing_order['plan_id'] = plan_id
         self.__users[user_id].save()
     
     def set_ongoing_order_period(self, user_id, period, period_id):
