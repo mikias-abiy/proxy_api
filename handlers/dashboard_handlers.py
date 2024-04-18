@@ -16,68 +16,7 @@ from api.ps_api import ps_api
 from models import user_manager as uim
 from models import storage
 from models.db_models.order import Order
-
-
-@bot.callback_query_handler(func=lambda call:
-                            call.data.endswith('_orders'))
-def callback_orders(call):
-    """
-    """
-
-    user_id = int(call.data.split("_")[0])
-
-    orders = storage.store.find(Order, Order.user_id == user_id)
-    response_orders_ipv4 = []
-    response_orders_mix = []
-
-    proxy_list_ipv4 = ps_api.proxyList("ipv4")['items']
-    proxy_list_mix = ps_api.proxyList("mix")['items']
-
-    for order in orders:
-        for proxy in proxy_list_ipv4:
-            if int(proxy['order_id']) == order.order_id:
-                response_orders_ipv4.append(proxy)
-
-    for order in orders:
-        for proxy in proxy_list_mix:
-            if int(proxy['order_id']) == order.order_id:
-                response_orders_ipv4.append(proxy)
-
-    if len(response_orders_ipv4):
-        msg_ipv4 = "Country Proxy List\n"
-
-        for order in response_orders_ipv4:
-            msg_ipv4 += f"""
-IP: {order['ip']}
-Port HTTP: {order['port_http']}
-Port Socks: {order['port_socks']}
-Country: {order['country']}
-
-Credentials
-Login: {order['login']}
-Password: {order['password']}
-
-"""
-        bot.send_message(call.message.chat.id, msg_ipv4)
-
-    if len(response_orders_mix):
-        msg_mix = "Mix Country Proxy List"
-        for order in response_orders_ipv4:
-            msg_mix += f"""
-IP: {order['ip']}
-Port HTTP: {order['port_http']}
-Port Socks: {order['port_socks']}
-Country: {order['country']}
-
-Credentials
-Login: {order['login']}
-Password: {order['password']}
-
-"""
-        bot.send_message(call.message.chat.id, msg_mix)
-
-    if len(response_orders_ipv4) and len(response_orders_mix):
-        bot.send_message(call.message.chat.id, "You have No orders")
+from handlers.paginator import keyboards
 
 
 @bot.callback_query_handler(func=lambda call:
@@ -108,6 +47,82 @@ def callback_dashboard(call):
         "Dashboard options:", call.message.chat.id,
         call.message.id, reply_markup=markup
     )
+
+
+@bot.callback_query_handler(func=lambda call:
+                            call.data.endswith('_orders'))
+def callback_orders(call):
+    """
+    """
+
+    user_id = int(call.data.split("_")[0])
+
+    data = []
+
+    btns = ['IPV4', 'Resident', 'ISP', 'Mobile']
+
+    for btn in btns:
+        data.append((f"{btn}", f"{user_id}_orders_{btn.lower()}_user"))
+
+    json_dict  = {
+        'id': call.message.chat.id,
+        'object': Keyboard(
+            chat_id=call.message.chat.id, data=data, row_width=4, rows_per_page=4,
+            button_text_mode=1, text_index=0, callback_index=1,
+            next_page="➡️", previous_page="⬅️" 
+        )
+    }
+
+    keyboards.append(json_dict)
+
+    keyboard = [keybrd['object'] for keybrd in keyboards if keybrd['id'] == call.message.chat.id]
+    keyboard = keyboard[0] if len(keyboard) else None
+
+    bot.edit_message_text("Choose Proxy Type:", call.message.chat.id, call.message.id, reply_markup=keyboard.send_keyboard())
+
+
+@bot.callback_query_handler(func=lambda call:
+                            call.data.endswith((
+                                '_orders_ipv4_user', '_orders_resident_user', 
+                                '_orders_mobile_user', '_orders_isp_user'
+                            )))
+def callback_orders_type_user(call):
+    """
+    """
+    user_id = int(call.data.split("_")[0])
+    proxytype = call.data.split("_")[-2]
+
+    response_orders =[]
+
+    proxy_list = ps_api.proxyList(proxytype)['items']
+
+    print(proxy_list)
+
+    orders = storage.store.find(Order, Order.user_id == user_id)
+
+    for order in orders:
+        for proxy in proxy_list:
+            if int(proxy['order_id']) == order.order_id:
+                response_orders.append(proxy)
+
+    if len(response_orders):
+        msg_ipv4 = f"{proxytype.capitalize()} Proxy List\n"
+
+        for order in response_orders:
+            msg_ipv4 += f"""
+IP: {order['ip']}
+Port HTTP: {order['port_http']}
+Port Socks: {order['port_socks']}
+Country: {order['country']}
+
+Credentials
+Login: {order['login']}
+Password: {order['password']}
+
+"""
+        bot.send_message(call.message.chat.id, msg_ipv4)
+    else:
+        bot.send_message(call.message.chat.id, "You have No orders")
 
 
 @bot.callback_query_handler(func=lambda call:
